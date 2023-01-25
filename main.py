@@ -2,6 +2,8 @@ import disnake
 from disnake.ext import commands
 import math
 import asyncio
+import requests
+import datetime
 
 intents = disnake.Intents.default()
 intents.members = True
@@ -124,6 +126,42 @@ async def unmute(inter, member: disnake.Member, *, reason=None):
     mute_role = disnake.utils.get(member.guild.roles, name='Muted')
     await member.remove_roles(mute_role)
     await inter.response.send_message(f'{member.mention} foi desmutado.')
+
+
+@bot.slash_command(name='drivers', description='Mostra a tabela de pontos de pilotos do ano atual da Fórmula 1')
+async def drivers(inter):
+    date = datetime.date.today()
+    ano = date.year
+
+    urlDrivers = f'https://ergast.com/api/f1/{ano}/driverStandings.json'
+    response = requests.get(urlDrivers)
+
+    if response.status_code == 200:
+        dadosDrivers = response.json()
+        tabela_pontos = ''
+        for driver in dadosDrivers['MRData']['StandingsTable']['StandingsLists'][0]['DriverStandings']:
+            tabela_pontos += f'{driver["position"]}º | {driver["Driver"]["givenName"]} {driver["Driver"]["familyName"]} - {driver["points"]} pontos\n'
+        await inter.response.send_message(tabela_pontos)
+    else:
+        await inter.response.send_message(f'Erro ao obter dados: {response.status_code}')
+
+
+@bot.slash_command(name='teams', description='Mostra a tabela de pontos de construtores do ano atual da Fórmula 1')
+async def teams(inter):
+    date = datetime.date.today()
+    ano = date.year
+
+    urlTeams = f'https://ergast.com/api/f1/{ano}/constructorStandings.json'
+    response = requests.get(urlTeams)
+
+    if response.status_code == 200:
+        dadosTeams = response.json()
+        tabela = ''
+        for constructor in dadosTeams['MRData']['StandingsTable']['StandingsLists'][0]['ConstructorStandings']:
+            tabela += f'{constructor["position"]}º | {constructor["Constructor"]["name"]} - {constructor["points"]} pontos\n'
+        await inter.response.send_message(tabela)
+    else:
+        await inter.response.send_message(f'Erro ao obter dados: {response.status_code}')
 
 
 bot.run('MY_TOKEN_HERE')
